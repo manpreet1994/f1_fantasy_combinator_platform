@@ -1,0 +1,21 @@
+{
+  "races": [
+    {
+      "date": "2025-03-16",
+      "location": "Australia",
+      "race_name": "Melbourne",
+      "round": 1
+    },
+    {
+      "date": "2025-03-23",
+      "location": "Jeddah",
+      "round": 2
+    },
+    {
+      "round": 3,
+      "location": "",
+      "date": "2025-03-25",
+      "race_name": "Baku"
+    }
+  ]
+}

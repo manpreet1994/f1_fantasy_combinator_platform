@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>F1 Fantasy Admin</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #f7f8fa;
+      margin: 0;
+      padding: 2em;
+      color: #222;
+    }
+    h1 {
+      text-align: center;
+      color: #2c3e50;
+      margin-bottom: 2em;
+    }
+    section {
+      margin-bottom: 2em;
+      background: #fff;
+      border: 1px solid #e1e4e8;
+      box-shadow: 0 2px 8px rgba(44,62,80,0.05);
+      padding: 1.5em;
+      border-radius: 12px;
+    }
+    h2 {
+      margin-top: 0;
+      color: #34495e;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 1em;
+      background: #fafbfc;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    th, td {
+      padding: 0.7em 0.5em;
+      border-bottom: 1px solid #e1e4e8;
+      text-align: left;
+    }
+    th {
+      background: #eaf1fb;
+      color: #2c3e50;
+      font-weight: 600;
+    }
+    tr:last-child td {
+      border-bottom: none;
+    }
+    input[type="text"], input[type="number"], input {
+      width: 90%;
+      padding: 0.3em 0.5em;
+      border: 1px solid #d1d5da;
+      border-radius: 4px;
+      font-size: 1em;
+      background: #fff;
+      color: #222;
+      box-sizing: border-box;
+    }
+    select.custom-dropdown {
+      width: 90%;
+      padding: 0.3em 0.5em;
+      border: 1px solid #2980b9;
+      border-radius: 4px;
+      font-size: 1em;
+      background: #eaf1fb;
+      color: #2c3e50;
+      box-sizing: border-box;
+      transition: border 0.2s;
+      outline: none;
+      appearance: none;
+      cursor: pointer;
+    }
+    select.custom-dropdown:focus {
+      border: 2px solid #2980b9;
+      background: #fff;
+    }
+    button {
+      background: #2980b9;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 0.7em 1.5em;
+      font-size: 1em;
+      font-weight: 500;
+      cursor: pointer;
+      margin-top: 0.5em;
+      box-shadow: 0 2px 4px rgba(44,62,80,0.08);
+      transition: background 0.2s;
+    }
+    button:hover {
+      background: #1a5a8a;
+    }
+    #schedule-status, #fantasy-status, #driver-status {
+      margin-left: 1em;
+      font-weight: 500;
+      color: #27ae60;
+    }
+    #subsection-header {
+      display: flex;
+      justify-content: center;
+      gap: 2em;
+      margin-bottom: 2em;
+    }
+    .nav-btn {
+      background: #fff;
+      color: #2980b9;
+      border: 2px solid #2980b9;
+      border-radius: 6px;
+      padding: 0.7em 1.5em;
+      font-size: 1em;
+      font-weight: 500;
+      cursor: pointer;
+      box-shadow: 0 2px 4px rgba(44,62,80,0.08);
+      transition: background 0.2s, color 0.2s;
+    }
+    .nav-btn.active, .nav-btn:hover {
+      background: #2980b9;
+      color: #fff;
+    }
+    @media (max-width: 700px) {
+      #subsection-header { gap: 0.5em; }
+      .nav-btn { padding: 0.5em 1em; font-size: 0.95em; }
+      body { padding: 0.5em; }
+      section { padding: 0.7em; }
+      table, th, td { font-size: 0.95em; }
+      button { padding: 0.5em 1em; font-size: 0.95em; }
+    }
+  </style>
+</head>
+<body>
+  <h1>F1 Fantasy Combinator Platform</h1>
+  <div id="login-box" style="max-width:400px;margin:2em auto;padding:2em;background:#fff;border-radius:12px;box-shadow:0 2px 8px rgba(44,62,80,0.08);">
+    <h2 style="text-align:center;color:#34495e;">Login</h2>
+    <form id="login-form" style="display:flex;flex-direction:column;gap:1em;">
+      <input type="text" id="username" placeholder="Username" required style="padding:0.7em;font-size:1em;">
+      <input type="password" id="password" placeholder="Password" required style="padding:0.7em;font-size:1em;">
+      <button type="submit" style="background:#2980b9;">Login</button>
+      <span id="login-status" style="color:#e74c3c;font-weight:500;"></span>
+    </form>
+  </div>
+  <div id="main-content" style="display:none;">
+    <div style="text-align:center;margin-bottom:1em;">
+      <label for="year-select" style="font-weight:600;font-size:1.1em;">Year:</label>
+      <input id="year-select" type="number" min="2020" max="2100" value="2025" style="width:5em;font-size:1em;margin-left:0.5em;">
+      <button id="copy-driver-mapping" style="margin-left:2em;background:#f39c12;">Copy Driver Mapping from Previous Year</button>
+      <button id="copy-teams" style="margin-left:1em;background:#f39c12;">Copy Teams from Previous Year</button>
+    </div>
+    <div id="subsection-header">
+      <button class="nav-btn" onclick="showSection('schedule')">Schedule</button>
+      <button class="nav-btn" onclick="showSection('fantasy')">Fantasy Scores</button>
+      <button class="nav-btn" onclick="showSection('driver')">Driver Mapping</button>
+      <button class="nav-btn" onclick="showSection('teams')">Teams</button>
+    </div>
+    <section id="teams-section" style="display:none;">
+      <h2>Teams</h2>
+      <table id="teams-table" border="1" style="width:100%;margin-bottom:1em;"></table>
+      <button onclick="addTeam()" style="background:#27ae60;margin-right:1em;">Add Team</button>
+      <button onclick="publishTeams()">Publish</button>
+      <span id="teams-status"></span>
+    </section>
+    <section id="schedule-section">
+      <h2>Schedule (Year: <span id="schedule-year">2025</span>)</h2>
+      <table id="schedule-table" border="1" style="width:100%;margin-bottom:1em;"></table>
+      <button onclick="addRace()" style="background:#27ae60;margin-right:1em;">Add Race</button>
+      <button onclick="publishSchedule()">Publish</button>
+      <span id="schedule-status"></span>
+    </section>
+    <section id="fantasy-section">
+      <h2>Fantasy Scores (Year: <span id="fantasy-year">2025</span>)</h2>
+      <div id="fantasy-tables"></div>
+      <button onclick="publishFantasy()">Publish</button>
+      <span id="fantasy-status"></span>
+    </section>
+    <section id="driver-section">
+      <h2>Driver Mapping</h2>
+      <table id="driver-table" border="1" style="width:100%;margin-bottom:1em;"></table>
+      <button onclick="addMapping()" style="background:#27ae60;margin-right:1em;">Add Mapping</button>
+      <button onclick="publishDriver()">Publish</button>
+      <span id="driver-status"></span>
+    </section>
+  </div>
+
+  <script>
+    let teamsData = [];
+    function renderTeamsTable() {
+      const table = document.getElementById('teams-table');
+      table.innerHTML = '<tr><th>Team Name</th><th>Remove</th></tr>';
+      teamsData.forEach((team, idx) => {
+        table.innerHTML += `<tr>
+          <td><input value="${team}" onchange="teamsData[${idx}]=this.value; renderTeamsTable(); renderDriverTable(Object.fromEntries(driverData.map(row => [row.name, {id: row.id, team: row.team}])));"></td>
+          <td><button style='background:#e74c3c;' onclick='removeTeam(${idx})'>Remove</button></td>
+        </tr>`;
+      });
+    }
+    function addTeam() {
+      teamsData.push("");
+      renderTeamsTable();
+    }
+    function removeTeam(idx) {
+      teamsData.splice(idx, 1);
+      renderTeamsTable();
+    }
+    function publishTeams() {
+      fetch(`/teams/${year}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(teamsData)
+      })
+      .then(res => {
+        document.getElementById('teams-status').textContent = res.ok ? 'Published!' : 'Error';
+      });
+    }
+    // Section navigation logic
+    function showSection(section) {
+      document.getElementById('schedule-section').style.display = section === 'schedule' ? '' : 'none';
+      document.getElementById('fantasy-section').style.display = section === 'fantasy' ? '' : 'none';
+      document.getElementById('driver-section').style.display = section === 'driver' ? '' : 'none';
+      document.getElementById('teams-section').style.display = section === 'teams' ? '' : 'none';
+      document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+      document.querySelector(`.nav-btn[onclick*="${section}"]`).classList.add('active');
+    }
+    // Show schedule by default
+    showSection('schedule');
+    let year = 2025;
+    // Simple login logic
+    document.getElementById('login-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+      fetch('/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          document.getElementById('login-box').style.display = 'none';
+          document.getElementById('main-content').style.display = '';
+        } else {
+          document.getElementById('login-status').textContent = 'Invalid credentials';
+        }
+      });
+    });
+    function updateYearUI() {
+      document.getElementById('schedule-year').textContent = year;
+      document.getElementById('fantasy-year').textContent = year;
+    }
+    document.getElementById('year-select').addEventListener('change', function() {
+      year = parseInt(this.value);
+      updateYearUI();
+      fetchAllData();
+    });
+
+    // Copy driver mapping from previous year
+    document.getElementById('copy-driver-mapping').addEventListener('click', function() {
+      const prevYear = year - 1;
+      fetch(`/driver_mapping/${prevYear}`)
+        .then(res => res.json())
+        .then(data => {
+          renderDriverTable(data);
+          // Optionally auto-publish to current year
+          fetch(`/driver_mapping/${year}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+          });
+        });
+    });
+
+    // Copy teams from previous year
+    document.getElementById('copy-teams').addEventListener('click', function() {
+      const prevYear = year - 1;
+      fetch(`/teams/${prevYear}`)
+        .then(res => res.json())
+        .then(data => {
+          teamsData = Array.isArray(data) ? data : [];
+          renderTeamsTable();
+          // Optionally auto-publish to current year
+          fetch(`/teams/${year}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(teamsData)
+          });
+        });
+    });
+    updateYearUI();
+
+  let scheduleData = {};
+  let fantasyData = {};
+  let fantasyDataLoaded = {};
+  let driverData = [];
+  let raceNameMap = {};
+
+    // Render schedule table
+    function renderScheduleTable(data) {
+      scheduleData = data;
+      raceNameMap = {};
+      const table = document.getElementById('schedule-table');
+      table.innerHTML = '<tr><th>Round</th><th>Race Name</th><th>Date</th><th>Remove</th></tr>';
+      if (data.races) {
+        data.races.forEach((race, idx) => {
+          raceNameMap[race.round] = race.race_name || race.location;
+          table.innerHTML += `<tr>
+            <td><input value="${race.round}" onchange="scheduleData.races[${idx}].round=this.value"></td>
+            <td><input value="${race.race_name || race.location}" onchange="scheduleData.races[${idx}].race_name=this.value"></td>
+            <td><input type="date" value="${race.date}" onchange="scheduleData.races[${idx}].date=this.value"></td>
+            <td><button style='background:#e74c3c;' onclick='removeRace(${idx})'>Remove</button></td>
+          </tr>`;
+        });
+      }
+    }
+
+    function addRace() {
+      if (!scheduleData.races) scheduleData.races = [];
+      scheduleData.races.push({round: scheduleData.races.length+1, location: '', date: ''});
+      renderScheduleTable(scheduleData);
+    }
+
+    function removeRace(idx) {
+      scheduleData.races.splice(idx, 1);
+      renderScheduleTable(scheduleData);
+    }
+
+    // Render fantasy scores tables (one per race)
+    function renderFantasyTables() {
+      const container = document.getElementById('fantasy-tables');
+      container.innerHTML = '';
+      // Render fantasy tables in schedule order
+      if (scheduleData.races) {
+        scheduleData.races.forEach(race => {
+          const raceNum = race.round;
+          const drivers = fantasyData[raceNum] || {};
+          const raceName = race.race_name || race.location || `Race ${raceNum}`;
+          let html = `<h3>${raceName} <span style='color:#888;font-size:0.9em;'>(Round ${raceNum})</span></h3><table border="1" style="width:100%;margin-bottom:1em;"><tr><th>Driver</th><th>FP1</th><th>FP2</th><th>FP3</th><th>Cost</th><th>Score</th><th>Remove</th></tr>`;
+          Object.keys(drivers).forEach((driverId, idx) => {
+            const d = drivers[driverId];
+            // Prevent duplicate drivers in dropdown for this race
+            const usedIds = Object.keys(drivers).filter(id => id !== driverId);
+            let driverOptions = driverData
+              .filter(row => !usedIds.includes(row.id) || row.id === driverId)
+              .map(row => `<option value="${row.id}"${driverId === row.id ? ' selected' : ''}>${row.name} (${row.id})</option>`).join('');
+            html += `<tr>
+              <td><select class='custom-dropdown' onchange="updateFantasyDriverId('${raceNum}', '${driverId}', this.value, this)">${driverOptions}</select></td>
+              <td><input name="fp1_position" value="${d.fp1_position}" onchange="fantasyData['${raceNum}']['${driverId}'].fp1_position=this.value"></td>
+              <td><input name="fp2_position" value="${d.fp2_position}" onchange="fantasyData['${raceNum}']['${driverId}'].fp2_position=this.value"></td>
+              <td><input name="fp3_position" value="${d.fp3_position}" onchange="fantasyData['${raceNum}']['${driverId}'].fp3_position=this.value"></td>
+              <td><input name="fantasy_cost" value="${d.fantasy_cost}" onchange="fantasyData['${raceNum}']['${driverId}'].fantasy_cost=this.value"></td>
+              <td><input name="fantasy_score" value="${d.fantasy_score}" onchange="fantasyData['${raceNum}']['${driverId}'].fantasy_score=this.value"></td>
+              <td><button style='background:#e74c3c;' onclick='removeFantasyDriver(\"${raceNum}\", \"${driverId}\")'>Remove</button></td>
+            </tr>`;
+          });
+          html += `</table><button style='background:#27ae60;margin-bottom:1em;' onclick='addFantasyDriver(\"${raceNum}\")'>Add Driver</button>`;
+          container.innerHTML += html;
+        });
+      }
+    }
+
+    function addFantasyDriver(raceNum) {
+  if (!fantasyData[raceNum]) fantasyData[raceNum] = {};
+  // Find first unused driver for this race
+  const usedIds = Object.keys(fantasyData[raceNum]);
+  const availableDriver = driverData.find(row => !usedIds.includes(row.id));
+  const newId = availableDriver ? availableDriver.id : `NEW${Date.now()}`;
+  fantasyData[raceNum][newId] = {fp1_position: '', fp2_position: '', fp3_position: '', fantasy_cost: '', fantasy_score: ''}; //NOSONAR
+  renderFantasyTables();
+    }
+
+    function removeFantasyDriver(raceNum, driverId) {
+      delete fantasyData[raceNum][driverId];
+      renderFantasyTables();
+    }
+
+    // Helper to update driver ID in fantasy scores without full re-render
+    function updateFantasyDriverId(raceNum, oldId, newId, selectElement) {
+      if (oldId !== newId) {
+        // Update the data model
+        fantasyData[raceNum][newId] = fantasyData[raceNum][oldId];
+        delete fantasyData[raceNum][oldId];
+
+        // Update the onchange handlers for the inputs in the same row
+        const row = selectElement.closest('tr');
+        const inputs = row.querySelectorAll('input');
+        inputs.forEach(input => {
+          input.onchange = function() { fantasyData[raceNum][newId][this.name] = this.value; };
+        });
+      }
+    }
+
+    // Render driver mapping table
+
+    // Fetch and display initial data for selected year
+    function fetchAllData() {
+      fetch(`/schedule/${year}`)
+        .then(res => res.json())
+        .then(data => {
+          renderScheduleTable(data);
+          fetch(`/fantasy_scores/${year}`)
+            .then(res => res.json())
+            .then(data => {
+              fantasyDataLoaded = JSON.parse(JSON.stringify(data));
+              fantasyData = JSON.parse(JSON.stringify(data));
+              renderFantasyTables();
+            });
+          fetch(`/driver_mapping/${year}`)
+            .then(res => res.json())
+            .then(data => {
+              fetch(`/teams/${year}`)
+                .then(res => res.json())
+                .then(teams => {
+                  teamsData = Array.isArray(teams) ? teams : [];
+                  renderTeamsTable();
+                  renderDriverTable(data);
+                });
+            });
+        });
+    }
+    fetchAllData();
+
+    // Publish functions
+    function publishSchedule() {
+      fetch(`/schedule/${year}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(scheduleData)
+      })
+      .then(res => {
+        document.getElementById('schedule-status').textContent = res.ok ? 'Published!' : 'Error';
+      });
+    }
+    function publishFantasy() {
+      fetch(`/fantasy_scores/${year}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(fantasyData)
+      })
+      .then(res => {
+        document.getElementById('fantasy-status').textContent = res.ok ? 'Published!' : 'Error';
+      });
+    }
+    function renderDriverTable(data) {
+      // Convert object to array for editing, support team column
+      driverData = Object.entries(data).map(([name, value]) => {
+        if (typeof value === 'object') {
+          return { name, id: value.id, team: value.team || '' };
+        } else {
+          return { name, id: value, team: '' };
+        }
+      });
+      const table = document.getElementById('driver-table');
+      table.innerHTML = '<tr><th>Driver Name</th><th>Driver ID</th><th>Team</th><th>Remove</th></tr>';
+      driverData.forEach((row, idx) => {
+        let teamOptions = teamsData.map(team => `<option value="${team}"${row.team === team ? ' selected' : ''}>${team}</option>`).join('');
+        table.innerHTML += `<tr>
+          <td><input value="${row.name}" onchange="driverData[${idx}].name=this.value; syncFantasyDriverLabels();"></td>
+          <td><input value="${row.id}" onchange="driverData[${idx}].id=this.value; syncFantasyDriverLabels();"></td>
+          <td><select class='custom-dropdown' onchange="driverData[${idx}].team=this.value">${teamOptions}</select></td>
+          <td><button style='background:#e74c3c;' onclick='removeMapping(${idx})'>Remove</button></td>
+        </tr>`;
+      });
+    }
+
+    function addMapping() {
+      driverData.push({ name: '', id: '', team: '' });
+      renderDriverTable(Object.fromEntries(driverData.map(row => [row.name, {id: row.id, team: row.team}])));
+      addDriverToFantasyScores(driverData[driverData.length-1].id);
+    }
+
+    function removeMapping(idx) {
+      const removedId = driverData[idx].id;
+      driverData.splice(idx, 1);
+      renderDriverTable(Object.fromEntries(driverData.map(row => [row.name, {id: row.id, team: row.team}])));
+      removeDriverFromFantasyScores(removedId);
+    }
+
+    // Sync fantasy scores driver labels with mapping
+    function syncFantasyDriverLabels() {
+      // Build a mapping of previous IDs to new IDs
+      // We'll use the driverData array to track changes
+      // If a driver ID was changed, rename keys in fantasyData
+      driverData.forEach(row => {
+        // Find if this driver was previously present with a different ID
+        // We'll use the name as the stable key
+        // Find all previous IDs for this name in fantasyData
+        Object.keys(fantasyData).forEach(raceNum => {
+          const drivers = fantasyData[raceNum];
+          // Find any driverId in this race that matches this name (from previous mapping)
+          Object.keys(drivers).forEach(driverId => {
+            // If the mapping for this driverId does not match the current row.id, and the name matches
+            // We need to rename the key
+            // But we don't have previous mapping, so we only rename if the driverId !== row.id and driverId is not in current mapping
+            // Instead, we can check if driverId is not in the current mapping
+            const mappedIds = driverData.map(d => d.id);
+            if (!mappedIds.includes(driverId) && row.id) {
+              // Rename driverId to row.id
+              drivers[row.id] = drivers[driverId];
+              delete drivers[driverId];
+            }
+          });
+        });
+      });
+      renderFantasyTables();
+    }
+
+    // Add new driver row to all races in fantasy scores
+    function addDriverToFantasyScores(newId) {
+      Object.keys(fantasyData).forEach(raceNum => {
+        if (newId && !fantasyData[raceNum][newId]) {
+          fantasyData[raceNum][newId] = {fp1_position: '', fp2_position: '', fp3_position: '', fantasy_cost: '', fantasy_score: ''};
+        }
+      });
+      renderFantasyTables();
+    }
+
+    // Remove driver row from all races in fantasy scores
+    function removeDriverFromFantasyScores(removedId) {
+      Object.keys(fantasyData).forEach(raceNum => {
+        if (fantasyData[raceNum][removedId]) {
+          delete fantasyData[raceNum][removedId];
+        }
+      });
+      renderFantasyTables();
+    }
+
+    function publishDriver() {
+      // Convert array back to object for API, include team
+      const mappingObj = {};
+      driverData.forEach(row => {
+        if (row.name) mappingObj[row.name] = { id: row.id, team: row.team };
+      });
+      fetch(`/driver_mapping/${year}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(mappingObj)
+      })
+      .then(res => {
+        document.getElementById('driver-status').textContent = res.ok ? 'Published!' : 'Error';
+      });
+    }
+  </script>
+</body>
+</html>

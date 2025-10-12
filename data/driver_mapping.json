@@ -1,0 +1,82 @@
+{
+  "Charles Leclerc": {
+    "id": "LEC",
+    "team": ""
+  },
+  "George Russell": {
+    "id": "RUS",
+    "team": "Mercedes"
+  },
+  "Lando Norris": {
+    "id": "NOR",
+    "team": "Mclaren"
+  },
+  "Lewis Hamilton": {
+    "id": "HAM",
+    "team": ""
+  },
+  "Max Verstappen": {
+    "id": "VER",
+    "team": "Red bull"
+  },
+  "Oscar Piastri": {
+    "id": "PIA",
+    "team": "Mclaren"
+  },
+  "Yuki Tsunoda": {
+    "id": "TSU",
+    "team": "Red bull"
+  },
+  "Kimi Antonelli": {
+    "id": "ANT",
+    "team": "Mercedes"
+  },
+  "Piere Gasly": {
+    "id": "GAS",
+    "team": "Alpine"
+  },
+  "Franco Colapinto": {
+    "id": "COL",
+    "team": "Alpine"
+  },
+  "Carlos Sainz": {
+    "id": "SAI",
+    "team": "Williams"
+  },
+  "Alex Albon": {
+    "id": "ALB",
+    "team": "Williams"
+  },
+  "Fernando Alonso": {
+    "id": "ALO",
+    "team": "Aston Martin"
+  },
+  "Lance Stroll": {
+    "id": "STR",
+    "team": "Aston Martin"
+  },
+  "Isack Hadjar": {
+    "id": "HAD",
+    "team": "Racing bulls"
+  },
+  "Liam Lawson": {
+    "id": "LAW",
+    "team": "Racing bulls"
+  },
+  "Nico Hulkenberg": {
+    "id": "HUL",
+    "team": "Sauber"
+  },
+  "Gabriel Bortoleto": {
+    "id": "BOR",
+    "team": "Sauber"
+  },
+  "Oliver Bearman": {
+    "id": "BEA",
+    "team": "Haas"
+  },
+  "Esteban Ocon": {
+    "id": "OCO",
+    "team": "Haas"
+  }
+}
