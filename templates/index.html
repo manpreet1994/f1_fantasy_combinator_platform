@@ -157,6 +157,11 @@
     </div>
     <section id="teams-section" style="display:none;">
       <h2>Teams</h2>
+      <div style="margin-bottom: 1em;">
+        <h3>Paste JSON</h3>
+        <textarea id="teams-json-input" rows="5" style="width: 100%; box-sizing: border-box;" placeholder='Paste teams JSON here... e.g., ["Mercedes", "Red Bull Racing"]'></textarea>
+        <button onclick="populateTeamsFromJson()">Populate from JSON</button>
+      </div>
       <table id="teams-table" border="1" style="width:100%;margin-bottom:1em;"></table>
       <button onclick="addTeam()" style="background:#27ae60;margin-right:1em;">Add Team</button>
       <button onclick="publishTeams()">Publish</button>
@@ -164,6 +169,11 @@
     </section>
     <section id="schedule-section">
       <h2>Schedule (Year: <span id="schedule-year">2025</span>)</h2>
+      <div style="margin-bottom: 1em;">
+        <h3>Paste JSON</h3>
+        <textarea id="schedule-json-input" rows="5" style="width: 100%; box-sizing: border-box;" placeholder="Paste schedule JSON here... e.g., {&quot;races&quot;: [{&quot;round&quot;: 1, &quot;race_name&quot;: &quot;Bahrain Grand Prix&quot;, &quot;date&quot;: &quot;2025-03-16&quot;}]}"></textarea>
+        <button onclick="previewScheduleFromJson()">Preview from JSON</button>
+      </div>
       <table id="schedule-table" border="1" style="width:100%;margin-bottom:1em;"></table>
       <button onclick="addRace()" style="background:#27ae60;margin-right:1em;">Add Race</button>
       <button onclick="publishSchedule()">Publish</button>
@@ -171,12 +181,22 @@
     </section>
     <section id="fantasy-section">
       <h2>Fantasy Scores (Year: <span id="fantasy-year">2025</span>)</h2>
+      <div style="margin-bottom: 1em;">
+        <h3>Paste JSON</h3>
+        <textarea id="fantasy-json-input" rows="5" style="width: 100%; box-sizing: border-box;" placeholder='Paste fantasy scores JSON here... e.g., {"1": {"HAM": {"fantasy_score": 50, ...}}}'></textarea>
+        <button onclick="populateFantasyFromJson()">Populate from JSON</button>
+      </div>
       <div id="fantasy-tables"></div>
       <button onclick="publishFantasy()">Publish</button>
       <span id="fantasy-status"></span>
     </section>
     <section id="driver-section">
       <h2>Driver Mapping</h2>
+      <div style="margin-bottom: 1em;">
+        <h3>Paste JSON</h3>
+        <textarea id="driver-json-input" rows="5" style="width: 100%; box-sizing: border-box;" placeholder='Paste driver mapping JSON here... e.g., {"Lewis Hamilton": {"id": "HAM", "team": "Mercedes"}}'></textarea>
+        <button onclick="populateDriverMappingFromJson()">Populate from JSON</button>
+      </div>
       <table id="driver-table" border="1" style="width:100%;margin-bottom:1em;"></table>
       <button onclick="addMapping()" style="background:#27ae60;margin-right:1em;">Add Mapping</button>
       <button onclick="publishDriver()">Publish</button>
@@ -214,6 +234,22 @@
         document.getElementById('teams-status').textContent = res.ok ? 'Published!' : 'Error';
       });
     }
+
+    function populateTeamsFromJson() {
+      const jsonInput = document.getElementById('teams-json-input').value;
+      if (!jsonInput.trim()) {
+        alert('Please paste JSON data into the textarea.');
+        return;
+      }
+      try {
+        const data = JSON.parse(jsonInput);
+        teamsData = Array.isArray(data) ? data : [];
+        renderTeamsTable();
+      } catch (e) {
+        alert('Invalid JSON data. Please check the format.\n' + e.message);
+      }
+    }
+
     // Section navigation logic
     function showSection(section) {
       document.getElementById('schedule-section').style.display = section === 'schedule' ? '' : 'none';
@@ -312,6 +348,20 @@
             <td><button style='background:#e74c3c;' onclick='removeRace(${idx})'>Remove</button></td>
           </tr>`;
         });
+      }
+    }
+
+    function previewScheduleFromJson() {
+      const jsonInput = document.getElementById('schedule-json-input').value;
+      if (!jsonInput.trim()) {
+        alert('Please paste JSON data into the textarea.');
+        return;
+      }
+      try {
+        const data = JSON.parse(jsonInput);
+        renderScheduleTable(data);
+      } catch (e) {
+        alert('Invalid JSON data. Please check the format.\n' + e.message);
       }
     }
 
@@ -524,6 +574,41 @@
         }
       });
       renderFantasyTables();
+    }
+
+    function populateFantasyFromJson() {
+      const jsonInput = document.getElementById('fantasy-json-input').value;
+      if (!jsonInput.trim()) {
+        alert('Please paste JSON data into the textarea.');
+        return;
+      }
+      try {
+        const data = JSON.parse(jsonInput);
+        if (typeof data !== 'object' || data === null || Array.isArray(data)) {
+          throw new Error("JSON data must be an object/dictionary.");
+        }
+        fantasyData = data;
+        renderFantasyTables();
+      } catch (e) {
+        alert('Invalid JSON data. Please check the format.\n' + e.message);
+      }
+    }
+
+    function populateDriverMappingFromJson() {
+      const jsonInput = document.getElementById('driver-json-input').value;
+      if (!jsonInput.trim()) {
+        alert('Please paste JSON data into the textarea.');
+        return;
+      }
+      try {
+        const data = JSON.parse(jsonInput);
+        if (typeof data !== 'object' || data === null || Array.isArray(data)) {
+          throw new Error("JSON data must be an object/dictionary.");
+        }
+        renderDriverTable(data);
+      } catch (e) {
+        alert('Invalid JSON data. Please check the format.\n' + e.message);
+      }
     }
 
     function publishDriver() {
