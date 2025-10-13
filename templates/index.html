@@ -164,6 +164,7 @@
       </div>
       <table id="teams-table" border="1" style="width:100%;margin-bottom:1em;"></table>
       <button onclick="addTeam()" style="background:#27ae60;margin-right:1em;">Add Team</button>
+      <button onclick="exportTeams()">Export JSON</button>
       <button onclick="publishTeams()">Publish</button>
       <span id="teams-status"></span>
     </section>
@@ -176,6 +177,7 @@
       </div>
       <table id="schedule-table" border="1" style="width:100%;margin-bottom:1em;"></table>
       <button onclick="addRace()" style="background:#27ae60;margin-right:1em;">Add Race</button>
+      <button onclick="exportSchedule()">Export JSON</button>
       <button onclick="publishSchedule()">Publish</button>
       <span id="schedule-status"></span>
     </section>
@@ -187,6 +189,7 @@
         <button onclick="populateFantasyFromJson()">Populate from JSON</button>
       </div>
       <div id="fantasy-tables"></div>
+      <button onclick="exportFantasy()">Export JSON</button>
       <button onclick="publishFantasy()">Publish</button>
       <span id="fantasy-status"></span>
     </section>
@@ -199,12 +202,26 @@
       </div>
       <table id="driver-table" border="1" style="width:100%;margin-bottom:1em;"></table>
       <button onclick="addMapping()" style="background:#27ae60;margin-right:1em;">Add Mapping</button>
+      <button onclick="exportDriverMapping()">Export JSON</button>
       <button onclick="publishDriver()">Publish</button>
       <span id="driver-status"></span>
     </section>
   </div>
 
   <script>
+    function downloadJSON(data, filename) {
+      const jsonStr = JSON.stringify(data, null, 2);
+      const blob = new Blob([jsonStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
     let teamsData = [];
     function renderTeamsTable() {
       const table = document.getElementById('teams-table');
@@ -223,6 +240,11 @@
     function removeTeam(idx) {
       teamsData.splice(idx, 1);
       renderTeamsTable();
+    }
+
+    function exportTeams() {
+      const year = document.getElementById('year-select').value;
+      downloadJSON(teamsData, `teams_${year}.json`);
     }
     function publishTeams() {
       fetch(`/teams/${year}`, {
@@ -365,6 +387,11 @@
       }
     }
 
+    function exportSchedule() {
+      const year = document.getElementById('year-select').value;
+      downloadJSON(scheduleData, `schedule_${year}.json`);
+    }
+
     function addRace() {
       if (!scheduleData.races) scheduleData.races = [];
       scheduleData.races.push({round: scheduleData.races.length+1, location: '', date: ''});
@@ -418,6 +445,11 @@
   const newId = availableDriver ? availableDriver.id : `NEW${Date.now()}`;
   fantasyData[raceNum][newId] = {fp1_position: '', fp2_position: '', fp3_position: '', fantasy_cost: '', fantasy_score: ''}; //NOSONAR
   renderFantasyTables();
+    }
+
+    function exportFantasy() {
+      const year = document.getElementById('year-select').value;
+      downloadJSON(fantasyData, `fantasy_scores_${year}.json`);
     }
 
     function removeFantasyDriver(raceNum, driverId) {
@@ -520,6 +552,15 @@
       addDriverToFantasyScores(driverData[driverData.length-1].id);
     }
 
+    function exportDriverMapping() {
+      const year = document.getElementById('year-select').value;
+      // Convert array back to object for export, matching publish format
+      const mappingObj = {};
+      driverData.forEach(row => {
+        if (row.name) mappingObj[row.name] = { id: row.id, team: row.team };
+      });
+      downloadJSON(mappingObj, `driver_mapping_${year}.json`);
+    }
     function removeMapping(idx) {
       const removedId = driverData[idx].id;
       driverData.splice(idx, 1);
