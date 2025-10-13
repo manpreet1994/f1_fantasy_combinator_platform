@@ -587,7 +587,7 @@
         if (typeof data !== 'object' || data === null || Array.isArray(data)) {
           throw new Error("JSON data must be an object/dictionary.");
         }
-        fantasyData = data;
+        Object.assign(fantasyData, data); // Merge partial data
         renderFantasyTables();
       } catch (e) {
         alert('Invalid JSON data. Please check the format.\n' + e.message);

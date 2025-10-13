@@ -117,8 +117,11 @@ def fantasy_scores(year):
     elif request.method == 'POST':
         if not request.is_json:
             abort(400, description="Request must be JSON")
-        new_data = request.get_json()
-        save_json('fantasy_scores', year, new_data)
+        
+        current_data = load_json('fantasy_scores', year)
+        partial_data = request.get_json()
+        current_data.update(partial_data)
+        save_json('fantasy_scores', year, current_data)
         return Response(status=204)
 
 @app.route('/')
