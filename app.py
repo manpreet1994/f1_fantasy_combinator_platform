@@ -1,12 +1,12 @@
 import os
 from flask import Flask, jsonify, request, abort, render_template
-import os
 import json
 from flask import Response
 
 app = Flask(__name__, template_folder='templates')
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 TEAMS_FILE_TEMPLATE = os.path.join(DATA_DIR, 'teams_{}.json')
+DRIVER_MAPPING_FILE_TEMPLATE = os.path.join(DATA_DIR, 'driver_mapping_{}.json')
 
 
 def load_teams(year):
@@ -22,6 +22,19 @@ def save_teams(year, teams):
     with open(file_path, 'w') as f:
         json.dump(teams, f, indent=2)
 
+def load_driver_mapping(year):
+    file_path = DRIVER_MAPPING_FILE_TEMPLATE.format(year)
+    if not os.path.exists(file_path):
+        return {}
+    with open(file_path, 'r') as f:
+        return json.load(f)
+
+def save_driver_mapping(year, mapping):
+    file_path = DRIVER_MAPPING_FILE_TEMPLATE.format(year)
+    os.makedirs(os.path.dirname(file_path), exist_ok=True)
+    with open(file_path, 'w') as f:
+        json.dump(mapping, f, indent=2)
+
 @app.route('/teams/<int:year>', methods=['GET', 'POST'])
 def teams(year):
     if request.method == 'GET':
@@ -35,8 +48,9 @@ def teams(year):
         # No default year, year must be provided in URL
         save_teams(year, teams_data)
         return Response(status=204)
+
 @app.route('/login', methods=['POST'])
-def login():
+def handle_login():
     data = request.get_json()
     username = data.get('username')
     password = data.get('password')
@@ -53,20 +67,7 @@ def login():
         return jsonify({'success': True})
     else:
         return jsonify({'success': False}), 401
-DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
-DRIVER_MAPPING_FILE_TEMPLATE = os.path.join(DATA_DIR, 'driver_mapping_{}.json')
-def load_driver_mapping(year):
-    file_path = DRIVER_MAPPING_FILE_TEMPLATE.format(year)
-    if not os.path.exists(file_path):
-        return {}
-    with open(file_path, 'r') as f:
-        return json.load(f)
 
-def save_driver_mapping(year, mapping):
-    file_path = DRIVER_MAPPING_FILE_TEMPLATE.format(year)
-    os.makedirs(os.path.dirname(file_path), exist_ok=True)
-    with open(file_path, 'w') as f:
-        json.dump(mapping, f, indent=2)
 @app.route('/driver_mapping/<int:year>', methods=['GET', 'POST'])
 def driver_mapping(year):
     if request.method == 'GET':

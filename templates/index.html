@@ -132,6 +132,15 @@
       font-weight: bold;
       color: #2980b9;
     }
+    .indicator.complete {
+      color: #27ae60; /* Green */
+    }
+    .indicator.empty {
+      color: #f39c12; /* Orange */
+    }
+    #fantasy-tables th:first-child, #fantasy-tables td:first-child {
+      width: 30%;
+    }
     @media (max-width: 700px) {
       #subsection-header { gap: 0.5em; }
       .nav-btn { padding: 0.5em 1em; font-size: 0.95em; }
@@ -424,16 +433,19 @@
           const raceNum = race.round;
           const drivers = fantasyData[raceNum] || {};
           const raceName = race.race_name || race.location || `Race ${raceNum}`;
+          const numDrivers = Object.keys(drivers).length;
           let raceContainer = document.createElement('div');
           
-          let header = `<h3 class="collapsible-header" onclick="toggleRaceTable(${raceNum})"><span id="indicator-${raceNum}" class="indicator">+</span> ${raceName} <span style='color:#888;font-size:0.9em;'>(Round ${raceNum})</span></h3>`;
+          const indicatorClass = numDrivers > 0 ? 'indicator complete' : 'indicator empty';
+          let header = `<h3 class="collapsible-header" onclick="toggleRaceTable(${raceNum})"><span id="indicator-${raceNum}" class="${indicatorClass}">+</span> ${raceName} <span style='color:#888;font-size:0.9em;'>(Round ${raceNum})</span></h3>`;
           let tableContent = `<div id="race-table-${raceNum}" style="display:none;"><table border="1" style="width:100%;margin-bottom:1em;"><tr><th>Driver</th><th>FP1</th><th>FP2</th><th>FP3</th><th>Cost</th><th>Score</th><th>Remove</th></tr>`;
           Object.keys(drivers).forEach((driverId, idx) => {
             const d = drivers[driverId];
             // Prevent duplicate drivers in dropdown for this race
             const usedIds = Object.keys(drivers).filter(id => id !== driverId);
-            let driverOptions = driverData
-              .filter(row => !usedIds.includes(row.id) || row.id === driverId)
+            const usedIdsInOtherRows = Object.keys(drivers).filter(id => id !== driverId);
+            let driverOptions = driverData // All drivers
+              .filter(row => !usedIdsInOtherRows.includes(row.id)) // Exclude drivers used in other rows of the same race
               .map(row => `<option value="${row.id}"${driverId === row.id ? ' selected' : ''}>${row.name} (${row.id})</option>`).join('');
             tableContent += `<tr>
               <td><select class='custom-dropdown' onchange="updateFantasyDriverId('${raceNum}', '${driverId}', this.value, this)">${driverOptions}</select></td>
@@ -466,13 +478,13 @@
     }
 
     function addFantasyDriver(raceNum) {
-  if (!fantasyData[raceNum]) fantasyData[raceNum] = {};
-  // Find first unused driver for this race
-  const usedIds = Object.keys(fantasyData[raceNum]);
-  const availableDriver = driverData.find(row => !usedIds.includes(row.id));
-  const newId = availableDriver ? availableDriver.id : `NEW${Date.now()}`;
-  fantasyData[raceNum][newId] = {fp1_position: '', fp2_position: '', fp3_position: '', fantasy_cost: '', fantasy_score: ''}; //NOSONAR
-  renderFantasyTables();
+      if (!fantasyData[raceNum]) fantasyData[raceNum] = {};
+      // Find first unused driver for this race
+      const usedIds = Object.keys(fantasyData[raceNum]);
+      const availableDriver = driverData.find(row => !usedIds.includes(row.id));
+      const newId = availableDriver ? availableDriver.id : `NEW_${Date.now()}`;
+      fantasyData[raceNum][newId] = {fp1_position: '', fp2_position: '', fp3_position: '', fantasy_cost: '', fantasy_score: ''};
+      renderFantasyTables();
     }
 
     function exportFantasy() {
