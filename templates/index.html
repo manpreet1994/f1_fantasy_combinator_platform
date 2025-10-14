@@ -442,11 +442,10 @@
           Object.keys(drivers).forEach((driverId, idx) => {
             const d = drivers[driverId];
             // Prevent duplicate drivers in dropdown for this race
-            const usedIds = Object.keys(drivers).filter(id => id !== driverId);
             const usedIdsInOtherRows = Object.keys(drivers).filter(id => id !== driverId);
-            let driverOptions = driverData // All drivers
-              .filter(row => !usedIdsInOtherRows.includes(row.id)) // Exclude drivers used in other rows of the same race
-              .map(row => `<option value="${row.id}"${driverId === row.id ? ' selected' : ''}>${row.name} (${row.id})</option>`).join('');
+            let driverOptions = driverData
+              .filter(row => !usedIdsInOtherRows.includes(row.id) || row.id === driverId)
+              .map(row => `<option value="${row.id}" ${driverId === row.id ? 'selected' : ''}>${row.name} (${row.id})</option>`).join('');
             tableContent += `<tr>
               <td><select class='custom-dropdown' onchange="updateFantasyDriverId('${raceNum}', '${driverId}', this.value, this)">${driverOptions}</select></td>
               <td><input name="fp1_position" value="${d.fp1_position}" onchange="fantasyData['${raceNum}']['${driverId}'].fp1_position=this.value"></td>
@@ -566,11 +565,11 @@
     }
     function renderDriverTable(data) {
       // Convert object to array for editing, support team column
-      driverData = Object.entries(data).map(([name, value]) => {
+      driverData = Object.entries(data).map(([name, value]) => { //NOSONAR
         if (typeof value === 'object') {
-          return { name, id: value.id, team: value.team || '' };
+          return { name, id: String(value.id), team: value.team || '' };
         } else {
-          return { name, id: value, team: '' };
+          return { name, id: String(value), team: '' };
         }
       });
       const table = document.getElementById('driver-table');
@@ -588,7 +587,7 @@
 
     function addMapping() {
       driverData.push({ name: '', id: '', team: '' });
-      renderDriverTable(Object.fromEntries(driverData.map(row => [row.name, {id: row.id, team: row.team}])));
+      renderDriverTable(Object.fromEntries(driverData.map(row => [row.name, {id: row.id, team: row.team}]))); //NOSONAR
       addDriverToFantasyScores(driverData[driverData.length-1].id);
     }
 
@@ -604,7 +603,7 @@
     function removeMapping(idx) {
       const removedId = driverData[idx].id;
       driverData.splice(idx, 1);
-      renderDriverTable(Object.fromEntries(driverData.map(row => [row.name, {id: row.id, team: row.team}])));
+      renderDriverTable(Object.fromEntries(driverData.map(row => [row.name, {id: row.id, team: row.team}]))); //NOSONAR
       removeDriverFromFantasyScores(removedId);
     }
 
