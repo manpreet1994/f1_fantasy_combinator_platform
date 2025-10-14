@@ -516,28 +516,22 @@
 
     // Fetch and display initial data for selected year
     function fetchAllData() {
-      fetch(`/schedule/${year}`)
-        .then(res => res.json())
-        .then(data => {
-          renderScheduleTable(data);
-          fetch(`/fantasy_scores/${year}`)
-            .then(res => res.json())
-            .then(data => {
-              fantasyDataLoaded = JSON.parse(JSON.stringify(data));
-              fantasyData = JSON.parse(JSON.stringify(data));
-              renderFantasyTables();
-            });
-          fetch(`/driver_mapping/${year}`)
-            .then(res => res.json())
-            .then(data => {
-              fetch(`/teams/${year}`)
-                .then(res => res.json())
-                .then(teams => {
-                  teamsData = Array.isArray(teams) ? teams : [];
-                  renderTeamsTable();
-                  renderDriverTable(data);
-                });
-            });
+      Promise.all([
+        fetch(`/schedule/${year}`).then(res => res.json()),
+        fetch(`/fantasy_scores/${year}`).then(res => res.json()),
+        fetch(`/driver_mapping/${year}`).then(res => res.json()),
+        fetch(`/teams/${year}`).then(res => res.json())
+      ]).then(([schedule, fantasy, drivers, teams]) => {
+          // Process and store data first
+          renderScheduleTable(schedule);
+          fantasyDataLoaded = JSON.parse(JSON.stringify(fantasy));
+          fantasyData = JSON.parse(JSON.stringify(fantasy));
+          teamsData = Array.isArray(teams) ? teams : [];
+
+          // Now render the tables that depend on the data
+          renderTeamsTable();
+          renderDriverTable(drivers); // This populates driverData
+          renderFantasyTables();     // Now driverData is available
         });
     }
     fetchAllData();
