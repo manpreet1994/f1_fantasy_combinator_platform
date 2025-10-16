@@ -2,8 +2,17 @@ import os
 from flask import Flask, jsonify, request, abort, render_template
 import json
 from flask import Response
+from flask_cors import CORS
 
 app = Flask(__name__, template_folder='templates')
+
+# CORS Configuration
+origins = [
+    "http://localhost:5173",
+    "https://manpreet1994.github.io",
+]
+CORS(app, resources={r"/*": {"origins": origins}})
+
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 TEAMS_FILE_TEMPLATE = os.path.join(DATA_DIR, 'teams_{}.json')
 DRIVER_MAPPING_FILE_TEMPLATE = os.path.join(DATA_DIR, 'driver_mapping_{}.json')
