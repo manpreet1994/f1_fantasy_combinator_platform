@@ -14,29 +14,48 @@ origins = [
 CORS(app, resources={r"/*": {"origins": origins}})
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
-TEAMS_FILE_TEMPLATE = os.path.join(DATA_DIR, 'teams_{}.json')
+TEAM_MAPPING_FILE_TEMPLATE = os.path.join(DATA_DIR, 'team_mapping_{}.json')
 DRIVER_MAPPING_FILE_TEMPLATE = os.path.join(DATA_DIR, 'driver_mapping_{}.json')
 
 
-def load_teams(year):
-    file_path = TEAMS_FILE_TEMPLATE.format(year)
+def load_team_mapping(year):
+    file_path = TEAM_MAPPING_FILE_TEMPLATE.format(year)
     if not os.path.exists(file_path):
-        return []
+        return []  # Return a list for consistency
     with open(file_path, 'r') as f:
-        return json.load(f)
+        data = json.load(f)
+        # Handle legacy list of strings format
+        if data and isinstance(data[0], str):
+            return [{"name": team, "id": team.upper()[:3]} for team in data]
+        return data
 
-def save_teams(year, teams):
-    file_path = TEAMS_FILE_TEMPLATE.format(year)
+def save_team_mapping(year, team_mapping):
+    file_path = TEAM_MAPPING_FILE_TEMPLATE.format(year)
     os.makedirs(os.path.dirname(file_path), exist_ok=True)
+    # Ensure teams is a list of objects
+    # This is a safeguard, validation should happen in the view
     with open(file_path, 'w') as f:
-        json.dump(teams, f, indent=2)
+        json.dump(team_mapping, f, indent=2)
 
 def load_driver_mapping(year):
     file_path = DRIVER_MAPPING_FILE_TEMPLATE.format(year)
     if not os.path.exists(file_path):
         return {}
     with open(file_path, 'r') as f:
-        return json.load(f)
+        data = json.load(f)
+        # Handle legacy format: {"Driver Name": {"id": "ID", "team": "Team Name"}}
+        if data and all(isinstance(k, str) and isinstance(v, dict) and 'id' in v for k, v in data.items()):
+            # Check if it's not already in the new format
+            first_value = next(iter(data.values()), {})
+            if 'name' not in first_value:
+                teams_data = load_team_mapping(year)
+                team_name_to_id = {team['name']: team['id'] for team in teams_data}
+                new_mapping = {}
+                for name, details in data.items():
+                    team_name = details.get('team', '')
+                    new_mapping[details['id']] = {'name': name, 'team_id': team_name_to_id.get(team_name, '')}
+                return new_mapping
+        return data
 
 def save_driver_mapping(year, mapping):
     file_path = DRIVER_MAPPING_FILE_TEMPLATE.format(year)
@@ -44,18 +63,20 @@ def save_driver_mapping(year, mapping):
     with open(file_path, 'w') as f:
         json.dump(mapping, f, indent=2)
 
-@app.route('/teams/<int:year>', methods=['GET', 'POST'])
-def teams(year):
+@app.route('/team_mapping/<int:year>', methods=['GET', 'POST'])
+def team_mapping(year):
     if request.method == 'GET':
-        return jsonify(load_teams(year))
+        return jsonify(load_team_mapping(year))
     elif request.method == 'POST':
         if not request.is_json:
             abort(400, description="Request must be JSON")
-        teams_data = request.get_json()
-        if not isinstance(teams_data, list):
-            abort(400, description="Teams must be a JSON array")
+        team_mapping_data = request.get_json()
+        if not isinstance(team_mapping_data, list):
+            abort(400, description="Teams must be a JSON list of objects")
+        if any(not isinstance(t, dict) or 'name' not in t or 'id' not in t for t in team_mapping_data):
+            abort(400, description="Each team must be an object with 'name' and 'id' keys")
         # No default year, year must be provided in URL
-        save_teams(year, teams_data)
+        save_team_mapping(year, team_mapping_data)
         return Response(status=204)
 
 @app.route('/login', methods=['POST'])
@@ -87,6 +108,8 @@ def driver_mapping(year):
         new_mapping = request.get_json()
         if not isinstance(new_mapping, dict):
             abort(400, description="Mapping must be a JSON object")
+        if any(not isinstance(v, dict) or 'name' not in v or 'team_id' not in v for v in new_mapping.values()):
+            abort(400, description="Each driver must be an object with 'name' and 'team_id' keys")
         save_driver_mapping(year, new_mapping)
         return Response(status=204)
 

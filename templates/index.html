@@ -166,27 +166,27 @@
     <div style="text-align:center;margin-bottom:1em;">
       <label for="year-select" style="font-weight:600;font-size:1.1em;">Year:</label>
       <input id="year-select" type="number" min="2020" max="2100" value="2025" style="width:5em;font-size:1em;margin-left:0.5em;">
-      <button id="copy-driver-mapping" style="margin-left:2em;background:#f39c12;">Copy Driver Mapping from Previous Year</button>
-      <button id="copy-teams" style="margin-left:1em;background:#f39c12;">Copy Teams from Previous Year</button>
+      <button id="copy-driver-mapping" style="margin-left:2em;background:#f39c12;">Copy Driver Mapping from Prev Year</button>
+      <button id="copy-team-mapping" style="margin-left:1em;background:#f39c12;">Copy Team Mapping from Prev Year</button>
     </div>
     <div id="subsection-header">
       <button class="nav-btn" onclick="showSection('schedule')">Schedule</button>
       <button class="nav-btn" onclick="showSection('fantasy')">Fantasy Scores</button>
       <button class="nav-btn" onclick="showSection('driver')">Driver Mapping</button>
-      <button class="nav-btn" onclick="showSection('teams')">Teams</button>
+      <button class="nav-btn" onclick="showSection('team_mapping')">Team Mapping</button>
     </div>
-    <section id="teams-section" style="display:none;">
-      <h2>Teams</h2>
+    <section id="team-mapping-section" style="display:none;">
+      <h2>Team Mapping</h2>
       <div style="margin-bottom: 1em;">
         <h3>Paste JSON</h3>
-        <textarea id="teams-json-input" rows="5" style="width: 100%; box-sizing: border-box;" placeholder='Paste teams JSON here... e.g., ["Mercedes", "Red Bull Racing"]'></textarea>
-        <button onclick="populateTeamsFromJson()">Populate from JSON</button>
+        <textarea id="team-mapping-json-input" rows="5" style="width: 100%; box-sizing: border-box;" placeholder='Paste team mapping JSON here... e.g., [{"name": "Mercedes", "id": "MER"}, {"name": "Red Bull Racing", "id": "RBR"}]'></textarea>
+        <button onclick="populateTeamMappingFromJson()">Populate from JSON</button>
       </div>
-      <table id="teams-table" border="1" style="width:100%;margin-bottom:1em;"></table>
-      <button onclick="addTeam()" style="background:#27ae60;margin-right:1em;">Add Team</button>
-      <button onclick="exportTeams()">Export JSON</button>
-      <button onclick="publishTeams()">Publish</button>
-      <span id="teams-status"></span>
+      <table id="team-mapping-table" border="1" style="width:100%;margin-bottom:1em;"></table>
+      <button onclick="addTeamMapping()" style="background:#27ae60;margin-right:1em;">Add Team Mapping</button>
+      <button onclick="exportTeamMapping()">Export JSON</button>
+      <button onclick="publishTeamMapping()">Publish</button>
+      <span id="team-mapping-status"></span>
     </section>
     <section id="schedule-section">
       <h2>Schedule (Year: <span id="schedule-year">2025</span>)</h2>
@@ -205,7 +205,7 @@
       <h2>Fantasy Scores (Year: <span id="fantasy-year">2025</span>)</h2>
       <div style="margin-bottom: 1em;">
         <h3>Paste JSON</h3>
-        <textarea id="fantasy-json-input" rows="5" style="width: 100%; box-sizing: border-box;" placeholder='Paste fantasy scores JSON here... e.g., {"1": {"HAM": {"fantasy_score": 50, ...}}}'></textarea>
+        <textarea id="fantasy-json-input" rows="5" style="width: 100%; box-sizing: border-box;" placeholder='Paste fantasy scores JSON here... e.g., {"1": {"drivers": {"HAM": ...}, "teams": {"MERCEDES": ...}}}'></textarea>
         <button onclick="populateFantasyFromJson()">Populate from JSON</button>
       </div>
       <div id="fantasy-tables"></div>
@@ -217,7 +217,7 @@
       <h2>Driver Mapping</h2>
       <div style="margin-bottom: 1em;">
         <h3>Paste JSON</h3>
-        <textarea id="driver-json-input" rows="5" style="width: 100%; box-sizing: border-box;" placeholder='Paste driver mapping JSON here... e.g., {"Lewis Hamilton": {"id": "HAM", "team": "Mercedes"}}'></textarea>
+        <textarea id="driver-json-input" rows="5" style="width: 100%; box-sizing: border-box;" placeholder='Paste driver mapping JSON here... e.g., {"HAM": {"name": "Lewis Hamilton", "team_id": "MER"}}'></textarea>
         <button onclick="populateDriverMappingFromJson()">Populate from JSON</button>
       </div>
       <table id="driver-table" border="1" style="width:100%;margin-bottom:1em;"></table>
@@ -242,51 +242,56 @@
       URL.revokeObjectURL(url);
     }
 
-    let teamsData = [];
-    function renderTeamsTable() {
-      const table = document.getElementById('teams-table');
-      table.innerHTML = '<tr><th>Team Name</th><th>Remove</th></tr>';
-      teamsData.forEach((team, idx) => {
+    let teamMappingData = [];
+    function renderTeamMappingTable() {
+      const table = document.getElementById('team-mapping-table');
+      table.innerHTML = '<tr><th>Team Name</th><th>Team ID</th><th>Remove</th></tr>';
+      teamMappingData.sort((a, b) => a.name.localeCompare(b.name)).forEach((team, idx) => {
         table.innerHTML += `<tr>
-          <td><input value="${team}" onchange="teamsData[${idx}]=this.value; renderTeamsTable(); renderDriverTable(Object.fromEntries(driverData.map(row => [row.name, {id: row.id, team: row.team}])));"></td>
-          <td><button style='background:#e74c3c;' onclick='removeTeam(${idx})'>Remove</button></td>
+          <td><input value="${team.name}" onchange="teamMappingData[${idx}].name=this.value; renderDriverTable(Object.fromEntries(driverData.map(row => [row.id, {name: row.name, team_id: row.team_id}]))); renderFantasyTables();"></td>
+          <td><input value="${team.id}" onchange="teamMappingData[${idx}].id=this.value; renderDriverTable(Object.fromEntries(driverData.map(row => [row.id, {name: row.name, team_id: row.team_id}]))); renderFantasyTables();"></td>
+          <td><button style='background:#e74c3c;' onclick='removeTeamMapping(${idx})'>Remove</button></td>
         </tr>`;
       });
     }
-    function addTeam() {
-      teamsData.push("");
-      renderTeamsTable();
+    function addTeamMapping() {
+      teamMappingData.push({name: "", id: ""});
+      renderTeamMappingTable();
     }
-    function removeTeam(idx) {
-      teamsData.splice(idx, 1);
-      renderTeamsTable();
+    function removeTeamMapping(idx) {
+      teamMappingData.splice(idx, 1);
+      renderTeamMappingTable();
     }
 
-    function exportTeams() {
+    function exportTeamMapping() {
       const year = document.getElementById('year-select').value;
-      downloadJSON(teamsData, `teams_${year}.json`);
+      downloadJSON(teamMappingData, `team_mapping_${year}.json`);
     }
-    function publishTeams() {
-      fetch(`/teams/${year}`, {
+    function publishTeamMapping() {
+      fetch(`/team_mapping/${year}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(teamsData)
+        body: JSON.stringify(teamMappingData)
       })
       .then(res => {
-        document.getElementById('teams-status').textContent = res.ok ? 'Published!' : 'Error';
+        document.getElementById('team-mapping-status').textContent = res.ok ? 'Published!' : 'Error';
       });
     }
 
-    function populateTeamsFromJson() {
-      const jsonInput = document.getElementById('teams-json-input').value;
+    function populateTeamMappingFromJson() {
+      const jsonInput = document.getElementById('team-mapping-json-input').value;
       if (!jsonInput.trim()) {
         alert('Please paste JSON data into the textarea.');
         return;
       }
       try {
         const data = JSON.parse(jsonInput);
-        teamsData = Array.isArray(data) ? data : [];
-        renderTeamsTable();
+        if (Array.isArray(data) && data.every(item => typeof item === 'object' && 'name' in item && 'id' in item)) {
+            teamMappingData = data;
+        } else {
+            alert('Invalid JSON. Expected an array of objects with "name" and "id".');
+        }
+        renderTeamMappingTable();
       } catch (e) {
         alert('Invalid JSON data. Please check the format.\n' + e.message);
       }
@@ -297,7 +302,7 @@
       document.getElementById('schedule-section').style.display = section === 'schedule' ? '' : 'none';
       document.getElementById('fantasy-section').style.display = section === 'fantasy' ? '' : 'none';
       document.getElementById('driver-section').style.display = section === 'driver' ? '' : 'none';
-      document.getElementById('teams-section').style.display = section === 'teams' ? '' : 'none';
+      document.getElementById('team-mapping-section').style.display = section === 'team_mapping' ? '' : 'none';
       document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
       document.querySelector(`.nav-btn[onclick*="${section}"]`).classList.add('active');
     }
@@ -351,18 +356,20 @@
     });
 
     // Copy teams from previous year
-    document.getElementById('copy-teams').addEventListener('click', function() {
+    document.getElementById('copy-team-mapping').addEventListener('click', function() {
       const prevYear = year - 1;
-      fetch(`/teams/${prevYear}`)
-        .then(res => res.json())
+      fetch(`/team_mapping/${prevYear}`)
+        .then(res => res.ok ? res.json() : [])
         .then(data => {
-          teamsData = Array.isArray(data) ? data : [];
-          renderTeamsTable();
+          teamMappingData = Array.isArray(data) ? data.map(team => 
+              typeof team === 'string' ? {name: team, id: ''} : team
+          ) : [];
+          renderTeamMappingTable();
           // Optionally auto-publish to current year
-          fetch(`/teams/${year}`, {
+          fetch(`/team_mapping/${year}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(teamsData)
+            body: JSON.stringify(teamMappingData)
           });
         });
     });
@@ -429,12 +436,14 @@
       container.innerHTML = '';
       // Render fantasy tables in schedule order
       if (scheduleData.races) {
-        scheduleData.races.forEach(race => {
+        scheduleData.races.sort((a, b) => a.round - b.round).forEach(race => {
           const raceNum = race.round;
-          const drivers = fantasyData[raceNum] || {};
+          const raceData = fantasyData[raceNum] || {};
+          const drivers = raceData.drivers || {};
+          const teams = raceData.teams || {};
           const raceName = race.race_name || race.location || `Race ${raceNum}`;
-          const numDrivers = Object.keys(drivers).length;
-          let raceContainer = document.createElement('div');
+          const numDrivers = Object.keys(drivers).length + Object.keys(teams).length;
+          const raceContainer = document.createElement('div');
           
           const indicatorClass = numDrivers > 0 ? 'indicator complete' : 'indicator empty';
           let header = `<h3 class="collapsible-header" onclick="toggleRaceTable(${raceNum})"><span id="indicator-${raceNum}" class="${indicatorClass}">+</span> ${raceName} <span style='color:#888;font-size:0.9em;'>(Round ${raceNum})</span></h3>`;
@@ -447,16 +456,33 @@
               .filter(row => !usedIdsInOtherRows.includes(row.id) || row.id === driverId)
               .map(row => `<option value="${row.id}" ${driverId === row.id ? 'selected' : ''}>${row.name} (${row.id})</option>`).join('');
             tableContent += `<tr>
-              <td><select class='custom-dropdown' onchange="updateFantasyDriverId('${raceNum}', '${driverId}', this.value, this)">${driverOptions}</select></td>
-              <td><input name="fp1_position" value="${d.fp1_position}" onchange="fantasyData['${raceNum}']['${driverId}'].fp1_position=this.value"></td>
-              <td><input name="fp2_position" value="${d.fp2_position}" onchange="fantasyData['${raceNum}']['${driverId}'].fp2_position=this.value"></td>
-              <td><input name="fp3_position" value="${d.fp3_position}" onchange="fantasyData['${raceNum}']['${driverId}'].fp3_position=this.value"></td>
-              <td><input name="fantasy_cost" value="${d.fantasy_cost}" onchange="fantasyData['${raceNum}']['${driverId}'].fantasy_cost=this.value"></td>
-              <td><input name="fantasy_score" value="${d.fantasy_score}" onchange="fantasyData['${raceNum}']['${driverId}'].fantasy_score=this.value"></td>
+              <td><select class='custom-dropdown' onchange="updateFantasyDriverId('${raceNum}', '${driverId}', this.value)">${driverOptions}</select></td>
+              <td><input name="fp1_position" value="${d.fp1_position || ''}" onchange="fantasyData['${raceNum}'].drivers['${driverId}'].fp1_position=this.value"></td>
+              <td><input name="fp2_position" value="${d.fp2_position || ''}" onchange="fantasyData['${raceNum}'].drivers['${driverId}'].fp2_position=this.value"></td>
+              <td><input name="fp3_position" value="${d.fp3_position || ''}" onchange="fantasyData['${raceNum}'].drivers['${driverId}'].fp3_position=this.value"></td>
+              <td><input name="fantasy_cost" value="${d.fantasy_cost || ''}" onchange="fantasyData['${raceNum}'].drivers['${driverId}'].fantasy_cost=this.value"></td>
+              <td><input name="fantasy_score" value="${d.fantasy_score || ''}" onchange="fantasyData['${raceNum}'].drivers['${driverId}'].fantasy_score=this.value"></td>
               <td><button style='background:#e74c3c;' onclick='removeFantasyDriver(\"${raceNum}\", \"${driverId}\")'>Remove</button></td>
             </tr>`;
           });
-          tableContent += `</table><button style='background:#27ae60;margin-bottom:1em;' onclick='addFantasyDriver(\"${raceNum}\")'>Add Driver</button></div>`;
+          tableContent += `</table><button style='background:#27ae60;margin-bottom:1em;' onclick='addFantasyDriver(\"${raceNum}\")'>Add Driver</button>`;
+
+          // Team scores table
+          tableContent += `<h4>Team Scores</h4><table border="1" style="width:100%;margin-bottom:1em;"><tr><th>Team</th><th>Cost</th><th>Score</th><th>Remove</th></tr>`;
+          Object.keys(teams).forEach((teamId) => {
+            const t = teams[teamId];
+            const usedTeamIdsInOtherRows = Object.keys(teams).filter(id => id !== teamId);
+            let teamOptions = teamMappingData
+              .filter(team => !usedTeamIdsInOtherRows.includes(team.id) || team.id === teamId)
+              .map(team => `<option value="${team.id}" ${teamId === team.id ? 'selected' : ''}>${team.name} (${team.id})</option>`).join('');
+            tableContent += `<tr>
+              <td><select class='custom-dropdown' onchange="updateFantasyTeamId('${raceNum}', '${teamId}', this.value)">${teamOptions}</select></td>
+              <td><input name="fantasy_cost" value="${t.fantasy_cost || ''}" onchange="fantasyData['${raceNum}'].teams['${teamId}'].fantasy_cost=this.value"></td>
+              <td><input name="fantasy_score" value="${t.fantasy_score || ''}" onchange="fantasyData['${raceNum}'].teams['${teamId}'].fantasy_score=this.value"></td>
+              <td><button style='background:#e74c3c;' onclick='removeFantasyTeam(\"${raceNum}\", \"${teamId}\")'>Remove</button></td>
+            </tr>`;
+          });
+          tableContent += `</table><button style='background:#27ae60;margin-bottom:1em;' onclick='addFantasyTeam(\"${raceNum}\")'>Add Team</button></div>`;
           
           raceContainer.innerHTML = header + tableContent;
           container.appendChild(raceContainer);
@@ -477,13 +503,29 @@
     }
 
     function addFantasyDriver(raceNum) {
-      if (!fantasyData[raceNum]) fantasyData[raceNum] = {};
+      if (!fantasyData[raceNum]) fantasyData[raceNum] = {drivers: {}, teams: {}};
+      if (!fantasyData[raceNum].drivers) fantasyData[raceNum].drivers = {};
       // Find first unused driver for this race
-      const usedIds = Object.keys(fantasyData[raceNum]);
+      const usedIds = Object.keys(fantasyData[raceNum].drivers);
       const availableDriver = driverData.find(row => !usedIds.includes(row.id));
       const newId = availableDriver ? availableDriver.id : `NEW_${Date.now()}`;
-      fantasyData[raceNum][newId] = {fp1_position: '', fp2_position: '', fp3_position: '', fantasy_cost: '', fantasy_score: ''};
+      fantasyData[raceNum].drivers[newId] = {fp1_position: '', fp2_position: '', fp3_position: '', fantasy_cost: '', fantasy_score: ''};
       renderFantasyTables();
+      toggleRaceTable(raceNum);
+    }
+
+    function addFantasyTeam(raceNum) {
+        if (!fantasyData[raceNum]) fantasyData[raceNum] = {drivers: {}, teams: {}};
+        if (!fantasyData[raceNum].teams) fantasyData[raceNum].teams = {};
+        const usedTeamIds = Object.keys(fantasyData[raceNum].teams);
+        const availableTeam = teamMappingData.find(team => !usedTeamIds.includes(team.id));
+        if (availableTeam) {
+            fantasyData[raceNum].teams[availableTeam.id] = {fantasy_cost: '', fantasy_score: ''};
+        } else {
+            alert("No more available teams to add.");
+        }
+        renderFantasyTables();
+        toggleRaceTable(raceNum);
     }
 
     function exportFantasy() {
@@ -492,23 +534,33 @@
     }
 
     function removeFantasyDriver(raceNum, driverId) {
-      delete fantasyData[raceNum][driverId];
+      delete fantasyData[raceNum].drivers[driverId];
       renderFantasyTables();
+      toggleRaceTable(raceNum);
+    }
+
+    function removeFantasyTeam(raceNum, teamId) {
+        delete fantasyData[raceNum].teams[teamId];
+        renderFantasyTables();
+        toggleRaceTable(raceNum);
     }
 
     // Helper to update driver ID in fantasy scores without full re-render
-    function updateFantasyDriverId(raceNum, oldId, newId, selectElement) {
+    function updateFantasyDriverId(raceNum, oldId, newId) {
       if (oldId !== newId) {
-        // Update the data model
-        fantasyData[raceNum][newId] = fantasyData[raceNum][oldId];
-        delete fantasyData[raceNum][oldId];
+        fantasyData[raceNum].drivers[newId] = fantasyData[raceNum].drivers[oldId];
+        delete fantasyData[raceNum].drivers[oldId];
+        renderFantasyTables();
+        toggleRaceTable(raceNum);
+      }
+    }
 
-        // Update the onchange handlers for the inputs in the same row
-        const row = selectElement.closest('tr');
-        const inputs = row.querySelectorAll('input');
-        inputs.forEach(input => {
-          input.onchange = function() { fantasyData[raceNum][newId][this.name] = this.value; };
-        });
+    function updateFantasyTeamId(raceNum, oldId, newId) {
+      if (oldId !== newId) {
+        fantasyData[raceNum].teams[newId] = fantasyData[raceNum].teams[oldId];
+        delete fantasyData[raceNum].teams[oldId];
+        renderFantasyTables();
+        toggleRaceTable(raceNum);
       }
     }
 
@@ -520,17 +572,23 @@
         fetch(`/schedule/${year}`).then(res => res.json()),
         fetch(`/fantasy_scores/${year}`).then(res => res.json()),
         fetch(`/driver_mapping/${year}`).then(res => res.json()),
-        fetch(`/teams/${year}`).then(res => res.json())
-      ]).then(([schedule, fantasy, drivers, teams]) => {
+        fetch(`/team_mapping/${year}`).then(res => res.json())
+      ]).then(([schedule, fantasy, drivers, teamMapping]) => {
           // Process and store data first
           renderScheduleTable(schedule);
-          fantasyDataLoaded = JSON.parse(JSON.stringify(fantasy));
+          // Normalize fantasy data to new structure
+          Object.keys(fantasy).forEach(raceNum => {
+            if (fantasy[raceNum] && !fantasy[raceNum].drivers && !fantasy[raceNum].teams) {
+              // Old format detected
+              fantasy[raceNum] = { drivers: fantasy[raceNum], teams: {} };
+            }
+          });
           fantasyData = JSON.parse(JSON.stringify(fantasy));
-          teamsData = Array.isArray(teams) ? teams : [];
+          teamMappingData = Array.isArray(teamMapping) ? teamMapping : [];
 
           // Now render the tables that depend on the data
-          renderTeamsTable();
-          renderDriverTable(drivers); // This populates driverData
+          renderTeamMappingTable();
+          renderDriverTable(drivers);
           renderFantasyTables();     // Now driverData is available
         });
     }
@@ -559,29 +617,28 @@
     }
     function renderDriverTable(data) {
       // Convert object to array for editing, support team column
-      driverData = Object.entries(data).map(([name, value]) => { //NOSONAR
-        if (typeof value === 'object') {
-          return { name, id: String(value.id), team: value.team || '' };
-        } else {
-          return { name, id: String(value), team: '' };
-        }
-      });
+      driverData = Object.entries(data).map(([id, value]) => ({
+        id: String(id),
+        name: value.name || '',
+        team_id: value.team_id || ''
+      }));
+
       const table = document.getElementById('driver-table');
       table.innerHTML = '<tr><th>Driver Name</th><th>Driver ID</th><th>Team</th><th>Remove</th></tr>';
-      driverData.forEach((row, idx) => {
-        let teamOptions = teamsData.map(team => `<option value="${team}"${row.team === team ? ' selected' : ''}>${team}</option>`).join('');
+      driverData.sort((a, b) => a.name.localeCompare(b.name)).forEach((row, idx) => {
+        let teamOptions = teamMappingData.map(team => `<option value="${team.id}"${row.team_id === team.id ? ' selected' : ''}>${team.name}</option>`).join('');
         table.innerHTML += `<tr>
           <td><input value="${row.name}" onchange="driverData[${idx}].name=this.value; syncFantasyDriverLabels();"></td>
           <td><input value="${row.id}" onchange="driverData[${idx}].id=this.value; syncFantasyDriverLabels();"></td>
-          <td><select class='custom-dropdown' onchange="driverData[${idx}].team=this.value">${teamOptions}</select></td>
+          <td><select class='custom-dropdown' onchange="driverData[${idx}].team_id=this.value"><option value="">-- Select Team --</option>${teamOptions}</select></td>
           <td><button style='background:#e74c3c;' onclick='removeMapping(${idx})'>Remove</button></td>
         </tr>`;
       });
     }
 
     function addMapping() {
-      driverData.push({ name: '', id: '', team: '' });
-      renderDriverTable(Object.fromEntries(driverData.map(row => [row.name, {id: row.id, team: row.team}]))); //NOSONAR
+      driverData.push({ name: '', id: '', team_id: '' });
+      renderDriverTable(Object.fromEntries(driverData.map(row => [row.id, {name: row.name, team_id: row.team_id}])));
       addDriverToFantasyScores(driverData[driverData.length-1].id);
     }
 
@@ -590,14 +647,14 @@
       // Convert array back to object for export, matching publish format
       const mappingObj = {};
       driverData.forEach(row => {
-        if (row.name) mappingObj[row.name] = { id: row.id, team: row.team };
+        if (row.id) mappingObj[row.id] = { name: row.name, team_id: row.team_id };
       });
       downloadJSON(mappingObj, `driver_mapping_${year}.json`);
     }
     function removeMapping(idx) {
       const removedId = driverData[idx].id;
       driverData.splice(idx, 1);
-      renderDriverTable(Object.fromEntries(driverData.map(row => [row.name, {id: row.id, team: row.team}]))); //NOSONAR
+      renderDriverTable(Object.fromEntries(driverData.map(row => [row.id, {name: row.name, team_id: row.team_id}])));
       removeDriverFromFantasyScores(removedId);
     }
 
@@ -612,8 +669,8 @@
         // Find all previous IDs for this name in fantasyData
         Object.keys(fantasyData).forEach(raceNum => {
           const drivers = fantasyData[raceNum];
-          // Find any driverId in this race that matches this name (from previous mapping)
-          Object.keys(drivers).forEach(driverId => {
+          if (!drivers || !drivers.drivers) return;
+          Object.keys(drivers.drivers).forEach(driverId => {
             // If the mapping for this driverId does not match the current row.id, and the name matches
             // We need to rename the key
             // But we don't have previous mapping, so we only rename if the driverId !== row.id and driverId is not in current mapping
@@ -621,8 +678,8 @@
             const mappedIds = driverData.map(d => d.id);
             if (!mappedIds.includes(driverId) && row.id) {
               // Rename driverId to row.id
-              drivers[row.id] = drivers[driverId];
-              delete drivers[driverId];
+              drivers.drivers[row.id] = drivers.drivers[driverId];
+              delete drivers.drivers[driverId];
             }
           });
         });
@@ -633,8 +690,9 @@
     // Add new driver row to all races in fantasy scores
     function addDriverToFantasyScores(newId) {
       Object.keys(fantasyData).forEach(raceNum => {
-        if (newId && !fantasyData[raceNum][newId]) {
-          fantasyData[raceNum][newId] = {fp1_position: '', fp2_position: '', fp3_position: '', fantasy_cost: '', fantasy_score: ''};
+        if (!fantasyData[raceNum].drivers) fantasyData[raceNum].drivers = {};
+        if (newId && !fantasyData[raceNum].drivers[newId]) {
+          fantasyData[raceNum].drivers[newId] = {fp1_position: '', fp2_position: '', fp3_position: '', fantasy_cost: '', fantasy_score: ''};
         }
       });
       renderFantasyTables();
@@ -642,9 +700,9 @@
 
     // Remove driver row from all races in fantasy scores
     function removeDriverFromFantasyScores(removedId) {
-      Object.keys(fantasyData).forEach(raceNum => {
-        if (fantasyData[raceNum][removedId]) {
-          delete fantasyData[raceNum][removedId];
+      Object.keys(fantasyData).forEach(raceNum => { //NOSONAR
+        if (fantasyData[raceNum] && fantasyData[raceNum].drivers && fantasyData[raceNum].drivers[removedId]) {
+          delete fantasyData[raceNum].drivers[removedId];
         }
       });
       renderFantasyTables();
@@ -689,7 +747,7 @@
       // Convert array back to object for API, include team
       const mappingObj = {};
       driverData.forEach(row => {
-        if (row.name) mappingObj[row.name] = { id: row.id, team: row.team };
+        if (row.id) mappingObj[row.id] = { name: row.name, team_id: row.team_id };
       });
       fetch(`/driver_mapping/${year}`, {
         method: 'POST',
