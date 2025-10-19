@@ -440,7 +440,7 @@
           const raceNum = race.round;
           const raceData = fantasyData[raceNum] || {};
           const drivers = raceData.drivers || {};
-          const teams = raceData.teams || {};
+          const teams = raceData.constructors || {}; //NOSONAR
           const raceName = race.race_name || race.location || `Race ${raceNum}`;
           const numDrivers = Object.keys(drivers).length + Object.keys(teams).length;
           const raceContainer = document.createElement('div');
@@ -503,7 +503,7 @@
     }
 
     function addFantasyDriver(raceNum) {
-      if (!fantasyData[raceNum]) fantasyData[raceNum] = {drivers: {}, teams: {}};
+      if (!fantasyData[raceNum]) fantasyData[raceNum] = {drivers: {}, constructors: {}};
       if (!fantasyData[raceNum].drivers) fantasyData[raceNum].drivers = {};
       // Find first unused driver for this race
       const usedIds = Object.keys(fantasyData[raceNum].drivers);
@@ -515,12 +515,12 @@
     }
 
     function addFantasyTeam(raceNum) {
-        if (!fantasyData[raceNum]) fantasyData[raceNum] = {drivers: {}, teams: {}};
-        if (!fantasyData[raceNum].teams) fantasyData[raceNum].teams = {};
-        const usedTeamIds = Object.keys(fantasyData[raceNum].teams);
+        if (!fantasyData[raceNum]) fantasyData[raceNum] = {drivers: {}, constructors: {}};
+        if (!fantasyData[raceNum].constructors) fantasyData[raceNum].constructors = {};
+        const usedTeamIds = Object.keys(fantasyData[raceNum].constructors);
         const availableTeam = teamMappingData.find(team => !usedTeamIds.includes(team.id));
         if (availableTeam) {
-            fantasyData[raceNum].teams[availableTeam.id] = {fantasy_cost: '', fantasy_score: ''};
+            fantasyData[raceNum].constructors[availableTeam.id] = {fantasy_cost: '', fantasy_score: ''};
         } else {
             alert("No more available teams to add.");
         }
@@ -540,7 +540,7 @@
     }
 
     function removeFantasyTeam(raceNum, teamId) {
-        delete fantasyData[raceNum].teams[teamId];
+        delete fantasyData[raceNum].constructors[teamId];
         renderFantasyTables();
         toggleRaceTable(raceNum);
     }
@@ -557,8 +557,8 @@
 
     function updateFantasyTeamId(raceNum, oldId, newId) {
       if (oldId !== newId) {
-        fantasyData[raceNum].teams[newId] = fantasyData[raceNum].teams[oldId];
-        delete fantasyData[raceNum].teams[oldId];
+        fantasyData[raceNum].constructors[newId] = fantasyData[raceNum].constructors[oldId];
+        delete fantasyData[raceNum].constructors[oldId];
         renderFantasyTables();
         toggleRaceTable(raceNum);
       }
@@ -575,14 +575,7 @@
         fetch(`/team_mapping/${year}`).then(res => res.json())
       ]).then(([schedule, fantasy, drivers, teamMapping]) => {
           // Process and store data first
-          renderScheduleTable(schedule);
-          // Normalize fantasy data to new structure
-          Object.keys(fantasy).forEach(raceNum => {
-            if (fantasy[raceNum] && !fantasy[raceNum].drivers && !fantasy[raceNum].teams) {
-              // Old format detected
-              fantasy[raceNum] = { drivers: fantasy[raceNum], teams: {} };
-            }
-          });
+          renderScheduleTable(schedule); //NOSONAR
           fantasyData = JSON.parse(JSON.stringify(fantasy));
           teamMappingData = Array.isArray(teamMapping) ? teamMapping : [];
 
