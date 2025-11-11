@@ -207,6 +207,7 @@
         <h3>Paste JSON</h3>
         <textarea id="fantasy-json-input" rows="5" style="width: 100%; box-sizing: border-box;" placeholder='Paste fantasy scores JSON here... e.g., {"1": {"drivers": {"HAM": ...}, "teams": {"MERCEDES": ...}}}'></textarea>
         <button onclick="populateFantasyFromJson()">Populate from JSON</button>
+        <button onclick="parseExternalFantasyScores()">Parse External Fantasy Scores</button>
       </div>
       <div id="fantasy-tables"></div>
       <button onclick="exportFantasy()">Export JSON</button>
@@ -716,6 +717,46 @@
         renderFantasyTables();
       } catch (e) {
         alert('Invalid JSON data. Please check the format.\n' + e.message);
+      }
+    }
+
+    async function parseExternalFantasyScores() {
+      const textarea = document.getElementById('fantasy-json-input');
+      const jsonString = textarea.value;
+
+      if (!jsonString.trim()) {
+          textarea.value = "Error: Textbox is empty.";
+          return;
+      }
+
+      try {
+          // Validate JSON before sending
+          JSON.parse(jsonString);
+      } catch (e) {
+          textarea.value = "Error: Invalid JSON format. Please check the input.\n\n" + e.message;
+          return;
+      }
+
+      try {
+          const response = await fetch('/tools/parse_scores', {
+              method: 'POST',
+              headers: {
+                  'Content-Type': 'application/json',
+              },
+              body: jsonString, // Send the raw string, Flask will parse it
+          });
+
+          if (!response.ok) {
+              const errorData = await response.json();
+              throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+          }
+
+          const result = await response.json();
+          // Pretty-print the JSON response back into the textarea
+          textarea.value = JSON.stringify(result, null, 2);
+
+      } catch (error) {
+          textarea.value = "An error occurred: " + error.message;
       }
     }
 

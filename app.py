@@ -3,6 +3,8 @@ from flask import Flask, jsonify, request, abort, render_template
 import json
 from flask import Response
 from flask_cors import CORS
+from parse_f1_fantasytools_statistics import parse_external_scores
+
 
 app = Flask(__name__, template_folder='templates')
 
@@ -175,6 +177,23 @@ def fantasy_scores(year):
 @app.route('/')
 def index():
     return render_template('index.html')
+
+@app.route('/tools/parse_scores', methods=['POST'])
+def parse_scores_endpoint():
+    if not request.is_json:
+        return jsonify({"error": "Request must be JSON"}), 400
+    
+    input_data = request.get_json()
+
+    try:
+        # The parsing function expects a dictionary
+        parsed_data = parse_external_scores(input_data)
+        if not parsed_data:
+            return jsonify({"error": "Parsing resulted in empty data. Check input structure."}), 400
+        return jsonify(parsed_data)
+    except Exception as e:
+        # Catching a broad exception to handle any errors during parsing
+        return jsonify({"error": f"An error occurred during parsing: {str(e)}"}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)
