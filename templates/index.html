@@ -478,8 +478,8 @@
               .map(team => `<option value="${team.id}" ${teamId === team.id ? 'selected' : ''}>${team.name} (${team.id})</option>`).join('');
             tableContent += `<tr>
               <td><select class='custom-dropdown' onchange="updateFantasyTeamId('${raceNum}', '${teamId}', this.value)">${teamOptions}</select></td>
-              <td><input name="fantasy_cost" value="${t.fantasy_cost || ''}" onchange="fantasyData['${raceNum}'].teams['${teamId}'].fantasy_cost=this.value"></td>
-              <td><input name="fantasy_score" value="${t.fantasy_score || ''}" onchange="fantasyData['${raceNum}'].teams['${teamId}'].fantasy_score=this.value"></td>
+              <td><input name="fantasy_cost" value="${t.fantasy_cost || ''}" onchange="fantasyData['${raceNum}'].constructors['${teamId}'].fantasy_cost=this.value"></td>
+              <td><input name="fantasy_score" value="${t.fantasy_score || ''}" onchange="fantasyData['${raceNum}'].constructors['${teamId}'].fantasy_score=this.value"></td>
               <td><button style='background:#e74c3c;' onclick='removeFantasyTeam(\"${raceNum}\", \"${teamId}\")'>Remove</button></td>
             </tr>`;
           });

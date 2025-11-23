@@ -152,26 +152,10 @@ def fantasy_scores(year):
     elif request.method == 'POST':
         if not request.is_json:
             abort(400, description="Request must be JSON")
-        
-        current_data = load_json('fantasy_scores', year) or {}
-        partial_data = request.get_json()
 
-        # New logic to handle nested structure for drivers and constructors
-        for race_num, race_updates in partial_data.items():
-            if race_num not in current_data:
-                current_data[race_num] = {"drivers": {}, "constructors": {}}
-            
-            if "drivers" in race_updates:
-                if "drivers" not in current_data[race_num]:
-                    current_data[race_num]["drivers"] = {}
-                current_data[race_num]["drivers"].update(race_updates["drivers"])
-
-            if "constructors" in race_updates:
-                if "constructors" not in current_data[race_num]:
-                    current_data[race_num]["constructors"] = {}
-                current_data[race_num]["constructors"].update(race_updates["constructors"])
-
-        save_json('fantasy_scores', year, current_data)
+        # The frontend sends the complete state, so we can just overwrite the old data.
+        new_data = request.get_json()
+        save_json('fantasy_scores', year, new_data)
         return Response(status=204)
 
 @app.route('/')
