@@ -166,8 +166,6 @@
     <div style="text-align:center;margin-bottom:1em;">
       <label for="year-select" style="font-weight:600;font-size:1.1em;">Year:</label>
       <input id="year-select" type="number" min="2020" max="2100" value="2025" style="width:5em;font-size:1em;margin-left:0.5em;">
-      <button id="copy-driver-mapping" style="margin-left:2em;background:#f39c12;">Copy Driver Mapping from Prev Year</button>
-      <button id="copy-team-mapping" style="margin-left:1em;background:#f39c12;">Copy Team Mapping from Prev Year</button>
     </div>
     <div id="subsection-header">
       <button class="nav-btn" onclick="showSection('schedule')">Schedule</button>
@@ -212,6 +210,7 @@
       <div id="fantasy-tables"></div>
       <button onclick="exportFantasy()">Export JSON</button>
       <button onclick="publishFantasy()">Publish</button>
+      <button onclick="clearFantasyScores()" style="background:#e74c3c;">Clear fantasy scores</button>
       <span id="fantasy-status"></span>
     </section>
     <section id="driver-section">
@@ -338,41 +337,6 @@
       year = parseInt(this.value);
       updateYearUI();
       fetchAllData();
-    });
-
-    // Copy driver mapping from previous year
-    document.getElementById('copy-driver-mapping').addEventListener('click', function() {
-      const prevYear = year - 1;
-      fetch(`/driver_mapping/${prevYear}`)
-        .then(res => res.json())
-        .then(data => {
-          renderDriverTable(data);
-          // Optionally auto-publish to current year
-          fetch(`/driver_mapping/${year}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
-          });
-        });
-    });
-
-    // Copy teams from previous year
-    document.getElementById('copy-team-mapping').addEventListener('click', function() {
-      const prevYear = year - 1;
-      fetch(`/team_mapping/${prevYear}`)
-        .then(res => res.ok ? res.json() : [])
-        .then(data => {
-          teamMappingData = Array.isArray(data) ? data.map(team => 
-              typeof team === 'string' ? {name: team, id: ''} : team
-          ) : [];
-          renderTeamMappingTable();
-          // Optionally auto-publish to current year
-          fetch(`/team_mapping/${year}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(teamMappingData)
-          });
-        });
     });
     updateYearUI();
 
@@ -713,11 +677,55 @@
         if (typeof data !== 'object' || data === null || Array.isArray(data)) {
           throw new Error("JSON data must be an object/dictionary.");
         }
-        Object.assign(fantasyData, data); // Merge partial data
+
+        // Filter incoming data to only include drivers and teams present in the current mappings
+        const validDriverIds = new Set(driverData.map(d => d.id));
+        const validTeamIds = new Set(teamMappingData.map(t => t.id));
+
+        for (const raceNum in data) {
+            if (Object.prototype.hasOwnProperty.call(data, raceNum)) {
+                if (!fantasyData[raceNum]) {
+                    fantasyData[raceNum] = { drivers: {}, constructors: {} };
+                }
+                const raceData = data[raceNum];
+
+                if (raceData.drivers) {
+                    Object.keys(raceData.drivers).forEach(driverId => {
+                        if (validDriverIds.has(driverId)) fantasyData[raceNum].drivers[driverId] = raceData.drivers[driverId];
+                    });
+                }
+                if (raceData.constructors) {
+                    Object.keys(raceData.constructors).forEach(teamId => {
+                        if (validTeamIds.has(teamId)) fantasyData[raceNum].constructors[teamId] = raceData.constructors[teamId];
+                    });
+                }
+            }
+        }
         renderFantasyTables();
       } catch (e) {
         alert('Invalid JSON data. Please check the format.\n' + e.message);
       }
+    }
+
+    function clearFantasyScores() {
+      const year = document.getElementById('year-select').value;
+      if (!confirm(`Are you sure you want to delete all fantasy scores for ${year}? This cannot be undone.`)) {
+        return;
+      }
+
+      fetch(`/fantasy_scores/${year}`, {
+        method: 'DELETE',
+      })
+      .then(res => {
+        const statusEl = document.getElementById('fantasy-status');
+        if (res.ok) {
+          statusEl.textContent = `Fantasy scores for ${year} cleared!`;
+          fantasyData = {}; // Clear local data
+          renderFantasyTables(); // Re-render to show empty state
+        } else {
+          statusEl.textContent = 'Error clearing scores.';
+        }
+      });
     }
 
     async function parseExternalFantasyScores() {

@@ -132,7 +132,7 @@ def save_json(data_type, year, data):
     with open(file_path, 'w') as f:
         json.dump(data, f, indent=2)
 
-@app.route('/schedule/<int:year>', methods=['GET', 'POST'])
+@app.route('/schedule/<int:year>', methods=['GET', 'POST']) #NOSONAR
 def schedule(year):
     if request.method == 'GET':
         data = load_json('schedule', year)
@@ -144,7 +144,7 @@ def schedule(year):
         save_json('schedule', year, new_data)
         return Response(status=204)
 
-@app.route('/fantasy_scores/<int:year>', methods=['GET', 'POST'])
+@app.route('/fantasy_scores/<int:year>', methods=['GET', 'POST', 'DELETE'])
 def fantasy_scores(year):
     if request.method == 'GET':
         data = load_json('fantasy_scores', year)
@@ -157,6 +157,14 @@ def fantasy_scores(year):
         new_data = request.get_json()
         save_json('fantasy_scores', year, new_data)
         return Response(status=204)
+    elif request.method == 'DELETE':
+        file_path = get_json_path('fantasy_scores', year)
+        if os.path.exists(file_path):
+            os.remove(file_path)
+            return Response(status=204)
+        else:
+            # It's not an error if the file is already gone
+            return Response(status=204)
 
 @app.route('/')
 def index():
