@@ -187,5 +187,40 @@ def parse_scores_endpoint():
         # Catching a broad exception to handle any errors during parsing
         return jsonify({"error": f"An error occurred during parsing: {str(e)}"}), 500
 
+@app.route('/avg_price_per_year/<int:year>', methods=['GET'])
+def avg_price_per_year(year):
+    """
+    Calculates the average score and latest price for each driver for a given year.
+    """
+    fantasy_data = load_json('fantasy_scores', year)
+    if not fantasy_data:
+        return jsonify({})
+
+    driver_stats = {}
+    # Sort race numbers to correctly identify the latest price
+    race_numbers = sorted(fantasy_data.keys(), key=int)
+
+    for race_number in race_numbers:
+        race_data = fantasy_data[race_number]
+        for driver_abbr, driver_data in race_data.get("drivers", {}).items():
+            if driver_abbr not in driver_stats:
+                driver_stats[driver_abbr] = {"scores": [], "latest_price": None, "last_race": -1}
+
+            score = driver_data.get("fantasy_score")
+            if score is not None and score != '':
+                driver_stats[driver_abbr]["scores"].append(float(score))
+
+            cost = driver_data.get("fantasy_cost")
+            if cost is not None and cost != '':
+                driver_stats[driver_abbr]["latest_price"] = float(cost)
+
+    result = {}
+    for driver, stats in driver_stats.items():
+        scores = stats["scores"]
+        avg_score = round(sum(scores) / len(scores), 3) if scores else 0
+        result[driver] = {"avg_score": avg_score, "latest_price": stats["latest_price"]}
+
+    return jsonify(result)
+
 if __name__ == '__main__':
     app.run(debug=True)
